@@ -17,16 +17,21 @@ emoji_dict = {"무선충전기": "⚡", "우산": "☔"}
 @st.cache_data(ttl=60)
 def load_data(url, columns):
     try:
-        # skiprows=1을 추가하여 엑셀의 원래 제목줄을 건너뜁니다.
-        # names=columns를 사용하여 우리가 정한 이름을 바로 입힙니다.
-        df = pd.read_csv(url, skiprows=1, names=columns)
+        # on_bad_lines='skip': 칸 수가 안 맞는 이상한 줄은 일단 무시하고 넘어갑니다.
+        # engine='python': 좀 더 정밀하게 데이터를 읽어옵니다.
+        df = pd.read_csv(url, skiprows=1, names=columns, on_bad_lines='skip', engine='python')
+        
+        # 실제 데이터가 있는 행만 남기기 (카테고리가 비어있는 행 삭제)
+        df = df.dropna(subset=['카테고리'])
         
         for col in df.columns:
             if '수량' in col:
+                # 숫자가 아닌 데이터는 0으로 처리
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         return df
     except Exception as e:
-        st.error(f"데이터 로드 오류: {e}") # 에러 내용을 화면에 살짝 보여줍니다.
+        # 에러가 나면 화면에 어떤 링크에서 문제가 생겼는지 보여줍니다.
+        st.error(f"데이터 로드 오류 ({url[:30]}...): {e}")
         return pd.DataFrame(columns=columns)
 
 # 데이터 불러오기
