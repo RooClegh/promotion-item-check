@@ -68,7 +68,6 @@ for cat in categories:
                     <h2 style="margin:0; color: #1f1f1f;">{int(row['현재재고'])} <span style="font-size: 16px;">개</span></h2>
                 </div>
                 """,
-                unsafe_allow_stdio=True,
                 unsafe_allow_html=True
             )
     st.divider()
