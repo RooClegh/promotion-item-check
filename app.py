@@ -41,10 +41,18 @@ base_df = load_data(BASE_STOCK_URL, ['카테고리', '색상', '기초수량'])
 out_df = load_data(OUT_STOCK_URL, ['시간', '카테고리', '색상', '수량', '업체명', '작성자'])
 
 # --- [2. 재고 계산 로직] ---
-# 출고량 합계 계산
+
+# 1. 비교를 위해 카테고리와 색상을 모두 문자열 타입으로 강제 변환 (에러 방지 핵심!)
+base_df['카테고리'] = base_df['카테고리'].astype(str)
+base_df['색상'] = base_df['색상'].astype(str)
+out_df['카테고리'] = out_df['카테고리'].astype(str)
+out_df['색상'] = out_df['색상'].astype(str)
+
+# 2. 출고량 합계 계산
 out_sum = out_df.groupby(['카테고리', '색상'])['수량'].sum().reset_index()
 
-# 기초 재고와 출고 합계 합치기
+# 3. 기초 재고와 출고 합계 합치기
+# 여기서 양쪽의 데이터 타입이 같아야 merge가 성공합니다.
 final_df = pd.merge(base_df, out_sum, on=['카테고리', '색상'], how='left').fillna(0)
 final_df['현재재고'] = final_df['기초수량'] - final_df['수량']
 
