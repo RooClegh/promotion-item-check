@@ -5,7 +5,7 @@ import pandas as pd
 # 1. 기초 재고(입고량) 시트의 CSV 링크
 BASE_STOCK_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQceyq1k7axfRWw6uhud07HCyXKcnRpvV3HAHiiF_s9I6WodxZExSgRJBIPf62Xw_DZ9-UUr3-76iuY/pub?gid=0&single=true&output=csv"
 # 2. 설문지 응답(출고량) 시트의 CSV 링크 
-OUT_STOCK_URL = "https://docs.google.com/spreadsheets/d/1QIJO04NgGIM4SUxcsMp8Zl2WuWRwj0bnwh4svKoILhg/edit?usp=sharing"
+OUT_STOCK_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQceyq1k7axfRWw6uhud07HCyXKcnRpvV3HAHiiF_s9I6WodxZExSgRJBIPf62Xw_DZ9-UUr3-76iuY/pub?gid=398277773&single=true&output=csv"
 # 3. 구글 폼 주소
 google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdiLZvBYd1x-0gXxQz0cfSZq5szvXvsgCqTmi8D82lQAYIypw/viewform?usp=dialog"
 
