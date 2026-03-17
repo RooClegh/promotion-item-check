@@ -1,4 +1,4 @@
-iimport streamlit as st
+import streamlit as st
 import pandas as pd
 
 # --- [설정 부분: 이 주소들을 실제 주소로 꼭 바꿔주세요] ---
