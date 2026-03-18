@@ -86,7 +86,6 @@ for cat in ["무선충전기", "우산"]:
 st.divider()
 
 # --- [5. UI 화면 구성: 하단 상세 표 섹션] ---
-# 실제 색상 코드 매칭 (HTML 스타일용)
 color_codes = {
     "블랙": "#000000", "실버": "#C0C0C0", "핑크": "#FFB6C1", "그린": "#2E8B57", 
     "우드": "#DEB887", "블루": "#4169E1", "화이트": "#FFFFFF"
@@ -95,54 +94,66 @@ color_codes = {
 with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
     st.write("마지막 업데이트: 1분 간격 자동 갱신")
     
-    # HTML 표 시작
+    # 표 상단 제목 및 스타일 정의
     html_table = """
-    <table style='width: 100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd; font-size: 0.9rem;'>
+    <style>
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .inventory-table th {
+            background-color: #f8f9fa;
+            color: #333;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .inventory-table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+    </style>
+    <table class='inventory-table'>
         <thead>
-            <tr style='background-color: #f2f2f2; color: #333;'>
-                <th style='padding: 10px; border: 1px solid #ddd;'>구분</th>
-                <th style='padding: 10px; border: 1px solid #ddd;'>카테고리</th>
-                <th style='padding: 10px; border: 1px solid #ddd;'>색상</th>
-                <th style='padding: 10px; border: 1px solid #ddd;'>최초 입고</th>
-                <th style='padding: 10px; border: 1px solid #ddd;'>누적 출고</th>
-                <th style='padding: 10px; border: 1px solid #ddd;'>현재 잔량</th>
+            <tr>
+                <th>구분</th>
+                <th>카테고리</th>
+                <th>색상</th>
+                <th>최초 입고</th>
+                <th>누적 출고</th>
+                <th>현재 잔량</th>
             </tr>
         </thead>
         <tbody>
     """
     
-    # 데이터 행 추가
     for idx, row in final_df.iterrows():
         cat = row['카테고리']
         color = row['색상']
-        
-        # 이모지 및 색상 코드 가져오기
         cat_emoji = emoji_dict.get(cat, "📦")
         color_emoji = color_icons.get(color, "▫️")
-        color_hex = color_codes.get(color, "#FFFFFF") # 기본값 하얀색
+        color_hex = color_codes.get(color, "#FFFFFF")
         
-        # 색상 칸 글자색 결정 (블랙, 블루 등 어두운 색은 하얀 글씨로)
+        # 가독성을 위한 텍스트 색상 결정
         text_color = "white" if color in ["블랙", "블루", "그린"] else "black"
         
-        # 잔량 강조 색상
         current_stock = int(row['현재재고'])
-        stock_style = "color: red; font-weight: bold;" if current_stock < 5 else ""
+        stock_style = "color: #FF4B4B; font-weight: bold;" if current_stock < 5 else ""
         
         html_table += f"""
-            <tr style='border: 1px solid #ddd;'>
-                <td style='padding: 8px; border: 1px solid #ddd; font-size: 1.2rem;'>{cat_emoji}</td>
-                <td style='padding: 8px; border: 1px solid #ddd;'>{cat}</td>
-                <td style='padding: 8px; border: 1px solid #ddd; background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
+            <tr>
+                <td style='font-size: 1.2rem;'>{cat_emoji}</td>
+                <td>{cat}</td>
+                <td style='background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
                     {color_emoji} {color}
                 </td>
-                <td style='padding: 8px; border: 1px solid #ddd;'>{int(row['입고'])}개</td>
-                <td style='padding: 8px; border: 1px solid #ddd;'>{int(row['출고'] + row['출고_신규'])}개</td>
-                <td style='padding: 8px; border: 1px solid #ddd; {stock_style}'>{current_stock}개</td>
+                <td>{int(row['입고'])}개</td>
+                <td>{int(row['출고'] + row['출고_신규'])}개</td>
+                <td style='{stock_style}'>{current_stock}개</td>
             </tr>
         """
         
-    # HTML 표 마무리
     html_table += "</tbody></table>"
-    
-    # 완성된 HTML 표 출력
     st.markdown(html_table, unsafe_allow_html=True)
