@@ -66,24 +66,26 @@ color_icons = {
 
 emoji_dict = {"무선충전기": "⚡", "우산": "☔"}
 
+# --- [기존의 UI 구성 부분에서 카드 출력 로직만 이걸로 교체하세요] ---
+
 for cat in ["무선충전기", "우산"]:
     st.subheader(f"{emoji_dict.get(cat, '📦')} {cat} 현황")
     cat_items = final_df[final_df['카테고리'] == cat]
     
-    # 4개씩 한 줄에 표시
     cols = st.columns(4)
     for i, (idx, row) in enumerate(cat_items.iterrows()):
         with cols[i % 4]:
-            # 카드 형태의 컨테이너 생성
             with st.container(border=True):
                 icon = color_icons.get(row['색상'], "▫️")
                 st.markdown(f"### {icon} {row['색상']}")
                 
-                # 잔량에 따른 색상 강조 (10개 미만일 때 빨간색 표시 등 가능)
                 current_stock = int(row['현재재고'])
-                stock_color = "red" if current_stock < 10 else "black"
                 
-                st.markdown(f"현재 잔량: :{stock_color}[**{current_stock} 개**]")
+                # 'black' 글자가 뜨지 않도록 일반 굵게 처리로 변경
+                # 만약 5개 미만이면 주의 표시(⚠️)를 붙여줍니다.
+                warning = "⚠️ " if current_stock < 5 else ""
+                
+                st.markdown(f"**현재 잔량: {warning}{current_stock} 개**")
                 st.caption(f"누적 출고: {int(row['출고'] + row['출고_신규'])}개")
 
 st.markdown("---")
