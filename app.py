@@ -94,11 +94,11 @@ color_codes = {
 with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
     st.write("마지막 업데이트: 1분 간격 자동 갱신")
     
-    # 표 디자인 (CSS) 및 헤더 생성
-    html_table = """
+    # 1. 표의 스타일과 헤더를 먼저 그립니다.
+    st.markdown("""
     <style>
-        .inventory-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: sans-serif; }
-        .inventory-table th { background-color: #f8f9fa; color: #333; padding: 12px; border: 1px solid #dee2e6; }
+        .inventory-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .inventory-table th { background-color: #f8f9fa; color: #333; padding: 12px; border: 1px solid #dee2e6; text-align: center; }
         .inventory-table td { padding: 10px; border: 1px solid #dee2e6; text-align: center; }
     </style>
     <table class='inventory-table'>
@@ -113,9 +113,9 @@ with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
             </tr>
         </thead>
         <tbody>
-    """
+    """, unsafe_allow_html=True)
     
-    # 데이터 행을 하나씩 추가
+    # 2. 데이터 행을 하나씩 직접 출력합니다.
     for idx, row in final_df.iterrows():
         cat = row['카테고리']
         color = row['색상']
@@ -126,20 +126,20 @@ with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
         current_stock = int(row['현재재고'])
         stock_style = "color: #FF4B4B; font-weight: bold;" if current_stock < 5 else ""
         
-        html_table += f"""
-            <tr>
-                <td style='font-size: 1.2rem;'>{cat_emoji}</td>
-                <td>{cat}</td>
-                <td style='background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
-                    {color_emoji} {color}
-                </td>
-                <td>{int(row['입고'])}개</td>
-                <td>{int(row['출고'] + row['출고_신규'])}개</td>
-                <td style='{stock_style}'>{current_stock}개</td>
-            </tr>
-        """
-        
-    html_table += "</tbody></table>"
+        # 각 행(Row)을 개별적으로 렌더링합니다.
+        st.markdown(f"""
+            <table class='inventory-table' style='margin-top: -1px; border-top: none;'>
+                <tr style='border: 1px solid #dee2e6;'>
+                    <td style='width: 10%; font-size: 1.2rem;'>{cat_emoji}</td>
+                    <td style='width: 20%;'>{cat}</td>
+                    <td style='width: 20%; background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
+                        {color_emoji} {color}
+                    </td>
+                    <td style='width: 15%;'>{int(row['입고'])}개</td>
+                    <td style='width: 15%;'>{int(row['출고'] + row['출고_신규'])}개</td>
+                    <td style='width: 20%; {stock_style}'>{current_stock}개</td>
+                </tr>
+            </table>
+        """, unsafe_allow_html=True)
 
-    # ⭐ [가장 중요] 코드가 글자로 보이지 않게 HTML로 렌더링하는 함수입니다.
-    st.markdown(html_table, unsafe_allow_html=True)
+    st.markdown("</tbody></table>", unsafe_allow_html=True)
