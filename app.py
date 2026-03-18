@@ -6,21 +6,31 @@ BASE_STOCK_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQceyq1k7axfRW
 OUT_STOCK_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQceyq1k7axfRWw6uhud07HCyXKcnRpvV3HAHiiF_s9I6WodxZExSgRJBIPf62Xw_DZ9-UUr3-76iuY/pub?gid=398277773&single=true&output=csv"
 google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdiLZvBYd1x-0gXxQz0cfSZq5szvXvsgCqTmi8D82lQAYIypw/viewform?usp=dialog"
 
-st.set_page_config(page_title="2026 판촉물 재고 현황", layout="wide", page_icon="📋")
+st.set_page_config(page_title="2026 판촉물 재고 관리 시스템", layout="wide", page_icon="📋")
 
 # --- [2. 데이터 로드 및 전처리 함수] ---
 @st.cache_data(ttl=60)
 def load_data_smart(url):
     try:
         df = pd.read_csv(url, on_bad_lines='skip', engine='python')
+        # 열 이름 공백 제거 및 문자열 처리
+        df.columns = df.columns.str.strip()
         df['카테고리'] = df['카테고리'].astype(str).str.strip()
         df['색상'] = df['색상'].astype(str).str.strip()
+        
+        # '출고' 수량을 숫자로 변환
         if '출고' in df.columns:
             df['출고'] = pd.to_numeric(df['출고'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
         else:
             df['출고'] = 0
+            
+        # 상세내역 및 작성자(담당자) 공백 처리
+        for col in ['상세내역', '담당자', '작성자']:
+            if col in df.columns:
+                df[col] = df[col].fillna("-")
+                
         return df
-    except:
+    except Exception as e:
         return pd.DataFrame()
 
 # --- [3. 재고 계산 로직] ---
@@ -46,100 +56,91 @@ final_df = pd.merge(inventory_df, past_out_sum, on=['카테고리', '색상'], h
 final_df = pd.merge(final_df, new_out_sum, on=['카테고리', '색상'], how='left', suffixes=('', '_신규')).fillna(0)
 final_df['현재재고'] = final_df['입고'] - final_df['출고'] - final_df['출고_신규']
 
-# --- [4. UI 화면 구성: 상단 카드 섹션] ---
+# --- [4. UI 상단: 카드 현황판] ---
 st.title("📊 2026 판촉물 재고 현황 및 출고 신청")
 st.link_button("🔗 출고 신청서 작성(구글 폼)", google_form_url, use_container_width=True, type="primary")
 st.divider()
 
-color_icons = {
-    "블랙": "⚫", "실버": "⚪", "핑크": "🌸", "그린": "🟢", 
-    "우드": "🪵", "블루": "🔵", "화이트": "⚪"
-}
+color_icons = {"블랙": "⚫", "실버": "⚪", "핑크": "🌸", "그린": "🟢", "우드": "🪵", "블루": "🔵", "화이트": "⚪"}
 emoji_dict = {"무선충전기": "⚡", "우산": "☔"}
 
 for cat in ["무선충전기", "우산"]:
     st.subheader(f"{emoji_dict.get(cat, '📦')} {cat} 현황")
     cat_items = final_df[final_df['카테고리'] == cat]
-    
     cols = st.columns(4)
     for i, (idx, row) in enumerate(cat_items.iterrows()):
         with cols[i % 4]:
             current_stock = int(row['현재재고'])
             card_bg = "#852222" if current_stock < 5 else "#262730"
-            
             with st.container(border=True):
                 icon = color_icons.get(row['색상'], "▫️")
                 st.markdown(f"""
-                    <div style='background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; border: 1px solid #4A4A4A;'>
-                        <div style='font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px;'>
-                            {icon} {row['색상']}
-                        </div>
-                        <div style='font-size: 1.8rem; font-weight: 900; line-height: 1.2;'>
-                            잔량: {current_stock}개
-                        </div>
-                        <div style='font-size: 0.75rem; opacity: 0.7; margin-top: 12px;'>
-                            누적 출고: {int(row['출고'] + row['출고_신규'])}개
-                        </div>
+                    <div style='background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white;'>
+                        <div style='font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px;'>{icon} {row['색상']}</div>
+                        <div style='font-size: 1.8rem; font-weight: 900;'>잔량: {current_stock}개</div>
+                        <div style='font-size: 0.75rem; opacity: 0.7; margin-top: 12px;'>누적 출고: {int(row['출고'] + row['출고_신규'])}개</div>
                     </div>
                 """, unsafe_allow_html=True)
 
 st.divider()
 
-# --- [5. UI 화면 구성: 하단 상세 표 섹션] ---
-color_codes = {
-    "블랙": "#000000", "실버": "#C0C0C0", "핑크": "#FFB6C1", "그린": "#2E8B57", 
-    "우드": "#DEB887", "블루": "#4169E1", "화이트": "#FFFFFF"
-}
+# --- [5. UI 중단: 상세 재고 표] ---
+color_codes = {"블랙": "#000000", "실버": "#C0C0C0", "핑크": "#FFB6C1", "그린": "#2E8B57", "우드": "#DEB887", "블루": "#4169E1", "화이트": "#FFFFFF"}
 
 with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
     st.write("마지막 업데이트: 1분 간격 자동 갱신")
-    
-    # 1. 표의 스타일과 헤더를 먼저 그립니다.
-    st.markdown("""
+    html_table = """
     <style>
         .inventory-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .inventory-table th { background-color: #f8f9fa; color: #333; padding: 12px; border: 1px solid #dee2e6; text-align: center; }
         .inventory-table td { padding: 10px; border: 1px solid #dee2e6; text-align: center; }
     </style>
     <table class='inventory-table'>
-        <thead>
-            <tr>
-                <th>구분</th>
-                <th>카테고리</th>
-                <th>색상</th>
-                <th>최초 입고</th>
-                <th>누적 출고</th>
-                <th>현재 잔량</th>
-            </tr>
-        </thead>
+        <thead><tr><th>구분</th><th>카테고리</th><th>색상</th><th>입고</th><th>출고</th><th>현재 잔량</th></tr></thead>
         <tbody>
-    """, unsafe_allow_html=True)
-    
-    # 2. 데이터 행을 하나씩 직접 출력합니다.
+    """
     for idx, row in final_df.iterrows():
-        cat = row['카테고리']
-        color = row['색상']
-        cat_emoji = emoji_dict.get(cat, "📦")
-        color_emoji = color_icons.get(color, "▫️")
+        cat, color = row['카테고리'], row['색상']
         color_hex = color_codes.get(color, "#FFFFFF")
         text_color = "white" if color in ["블랙", "블루", "그린"] else "black"
         current_stock = int(row['현재재고'])
         stock_style = "color: #FF4B4B; font-weight: bold;" if current_stock < 5 else ""
         
-        # 각 행(Row)을 개별적으로 렌더링합니다.
-        st.markdown(f"""
-            <table class='inventory-table' style='margin-top: -1px; border-top: none;'>
-                <tr style='border: 1px solid #dee2e6;'>
-                    <td style='width: 10%; font-size: 1.2rem;'>{cat_emoji}</td>
-                    <td style='width: 20%;'>{cat}</td>
-                    <td style='width: 20%; background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
-                        {color_emoji} {color}
-                    </td>
-                    <td style='width: 15%;'>{int(row['입고'])}개</td>
-                    <td style='width: 15%;'>{int(row['출고'] + row['출고_신규'])}개</td>
-                    <td style='width: 20%; {stock_style}'>{current_stock}개</td>
-                </tr>
-            </table>
-        """, unsafe_allow_html=True)
+        html_table += f"""
+            <tr>
+                <td style='font-size: 1.2rem;'>{emoji_dict.get(cat, '📦')}</td>
+                <td>{cat}</td>
+                <td style='background-color: {color_hex}; color: {text_color}; font-weight: bold;'>{color_icons.get(color, '▫️')} {color}</td>
+                <td>{int(row['입고'])}개</td>
+                <td>{int(row['출고'] + row['출고_신규'])}개</td>
+                <td style='{stock_style}'>{current_stock}개</td>
+            </tr>
+        """
+    html_table += "</tbody></table>"
+    st.markdown(html_table, unsafe_allow_html=True)
 
-    st.markdown("</tbody></table>", unsafe_allow_html=True)
+# --- [6. UI 하단: 누적 출고 상세 이력 (사장님 보고용)] ---
+st.subheader("📜 전체 누적 출고 상세 이력")
+
+# 두 데이터 통합 및 정리
+history_base = base_raw[['날짜', '카테고리', '색상', '출고', '상세내역', '담당자']].copy() if not base_raw.empty else pd.DataFrame()
+if not history_base.empty: history_base.columns = ['일시', '카테고리', '색상', '수량', '상세내역(수령처)', '작성자']
+
+history_out = out_raw[['타임스탬프', '카테고리', '색상', '출고', '상세내역', '작성자']].copy() if not out_raw.empty else pd.DataFrame()
+if not history_out.empty: history_out.columns = ['일시', '카테고리', '색상', '수량', '상세내역(수령처)', '작성자']
+
+total_history = pd.concat([history_base, history_out], ignore_index=True)
+total_history = total_history[total_history['수량'] > 0] # 0개 데이터 제외
+total_history = total_history.sort_values(by='일시', ascending=False) # 최신순 정렬
+
+st.dataframe(
+    total_history,
+    use_container_width=True,
+    column_config={
+        "일시": st.column_config.TextColumn("출고 일시"),
+        "수량": st.column_config.NumberColumn("수량 (개)"),
+        "상세내역(수령처)": st.column_config.TextColumn("상세 내역 / 업체명"),
+        "작성자": st.column_config.TextColumn("출고 담당자")
+    },
+    hide_index=True
+)
