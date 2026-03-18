@@ -66,27 +66,36 @@ color_icons = {
 
 emoji_dict = {"무선충전기": "⚡", "우산": "☔"}
 
-# --- [기존의 UI 구성 부분에서 카드 출력 로직만 이걸로 교체하세요] ---
-
 for cat in ["무선충전기", "우산"]:
     st.subheader(f"{emoji_dict.get(cat, '📦')} {cat} 현황")
     cat_items = final_df[final_df['카테고리'] == cat]
     
     cols = st.columns(4)
     for i, (idx, row) in enumerate(cat_items.iterrows()):
-        with cols[i % 4]:
-            with st.container(border=True):
-                icon = color_icons.get(row['색상'], "▫️")
-                st.markdown(f"### {icon} {row['색상']}")
-                
-                current_stock = int(row['현재재고'])
-                
-                # 'black' 글자가 뜨지 않도록 일반 굵게 처리로 변경
-                # 만약 5개 미만이면 주의 표시(⚠️)를 붙여줍니다.
-                warning = "⚠️ " if current_stock < 5 else ""
-                
-                st.markdown(f"**현재 잔량: {warning}{current_stock} 개**")
-                st.caption(f"누적 출고: {int(row['출고'] + row['출고_신규'])}개")
+        # --- [카드 내부 출력 로직 수정본] ---
+
+with st.container(border=True):
+    icon = color_icons.get(row['색상'], "▫️")
+    
+    # 1. 색상 표기: 크기를 조금 줄임 (h4 또는 span 스타일)
+    st.markdown(f"<span style='font-size: 0.9rem; color: gray;'>{icon} {row['색상']}</span>", unsafe_allow_html=True)
+    
+    current_stock = int(row['현재재고'])
+    
+    # 2. 잔량 수량: 글씨를 더 키우고 굵게 강조 (h2급 크기)
+    # 재고가 5개 미만이면 빨간색으로 자동 강조되는 기능도 넣었습니다.
+    stock_color = "#FF4B4B" if current_stock < 5 else "#31333F"
+    
+    st.markdown(f"""
+        <div style='margin-top: -10px;'>
+            <span style='font-size: 1.5rem; font-weight: bold; color: {stock_color};'>
+                잔량: {current_stock}개
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # 3. 하단 캡션: 누적 출고량
+    st.caption(f"누적 출고: {int(row['출고'] + row['출고_신규'])}개")
 
 st.markdown("---")
 with st.expander("🔍 데이터 동기화 정보 확인"):
