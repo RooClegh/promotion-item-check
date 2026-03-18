@@ -77,29 +77,35 @@ for cat in ["무선충전기", "우산"]:
     st.subheader(f"{emoji_dict.get(cat, '📦')} {cat} 현황")
     cat_items = final_df[final_df['카테고리'] == cat]
     
+# 4개씩 한 줄에 표시
     cols = st.columns(4)
     for i, (idx, row) in enumerate(cat_items.iterrows()):
         with cols[i % 4]:
+            # 카드 배경색을 어둡게 설정하여 하얀색 글자가 잘 보이게 합니다.
+            current_stock = int(row['현재재고'])
+            
+            # 재고가 5개 미만이면 배경을 약간 붉은 계열로, 아니면 진한 회색(#262730)으로!
+            card_bg = "#852222" if current_stock < 5 else "#262730"
+            
             with st.container(border=True):
-                # 색상 표기 (작은 글씨)
+                # HTML을 이용해 카드 내부 스타일을 직접 제어합니다.
                 icon = color_icons.get(row['색상'], "▫️")
-                st.markdown(f"<span style='font-size: 0.9rem; color: gray;'>{icon} {row['색상']}</span>", unsafe_allow_html=True)
                 
-                current_stock = int(row['현재재고'])
-                # 재고가 5개 미만이면 빨간색, 아니면 기본색
-                stock_color = "#FF4B4B" if current_stock < 5 else "#31333F"
-                
-                # 잔량 수량 표기 (큰 글씨)
                 st.markdown(f"""
-                    <div style='margin-top: -5px; margin-bottom: 5px;'>
-                        <span style='font-size: 1.6rem; font-weight: bold; color: {stock_color};'>
+                    <div style='background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white;'>
+                        <div style='font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px;'>
+                            {icon} {row['색상']}
+                        </div>
+                        
+                        <div style='font-size: 1.8rem; font-weight: 900; line-height: 1.2;'>
                             잔량: {current_stock}개
-                        </span>
+                        </div>
+                        
+                        <div style='font-size: 0.75rem; opacity: 0.7; margin-top: 10px;'>
+                            누적 출고: {int(row['출고'] + row['출고_신규'])}개
+                        </div>
                     </div>
                 """, unsafe_allow_html=True)
-                
-                # 하단 누적 정보
-                st.caption(f"누적 출고: {int(row['출고'] + row['출고_신규'])}개")
 
 st.divider()
 with st.expander("🔍 데이터 동기화 정보 확인"):
