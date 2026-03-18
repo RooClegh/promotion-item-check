@@ -8,7 +8,7 @@ google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdiLZvBYd1x-0gXxQz0c
 
 st.set_page_config(page_title="2026 판촉물 재고 현황", layout="wide", page_icon="📋")
 
-# --- [2. 데이터 로드 함수] ---
+# --- [2. 데이터 로드 및 전처리 함수] ---
 @st.cache_data(ttl=60)
 def load_data_smart(url):
     try:
@@ -46,7 +46,7 @@ final_df = pd.merge(inventory_df, past_out_sum, on=['카테고리', '색상'], h
 final_df = pd.merge(final_df, new_out_sum, on=['카테고리', '색상'], how='left', suffixes=('', '_신규')).fillna(0)
 final_df['현재재고'] = final_df['입고'] - final_df['출고'] - final_df['출고_신규']
 
-# --- [4. UI 화면 구성] ---
+# --- [4. UI 화면 구성: 상단 카드 섹션] ---
 st.title("📊 2026 판촉물 재고 현황 및 출고 신청")
 st.link_button("🔗 출고 신청서 작성(구글 폼)", google_form_url, use_container_width=True, type="primary")
 st.divider()
@@ -65,13 +65,10 @@ for cat in ["무선충전기", "우산"]:
     for i, (idx, row) in enumerate(cat_items.iterrows()):
         with cols[i % 4]:
             current_stock = int(row['현재재고'])
-            # 재고 부족 시 진한 빨강, 보통 시 진한 회색 배경
             card_bg = "#852222" if current_stock < 5 else "#262730"
             
             with st.container(border=True):
                 icon = color_icons.get(row['색상'], "▫️")
-                
-                # HTML 스타일을 사용하여 하얀색 두꺼운 폰트 적용
                 st.markdown(f"""
                     <div style='background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; border: 1px solid #4A4A4A;'>
                         <div style='font-size: 0.85rem; opacity: 0.8; margin-bottom: 8px;'>
@@ -87,6 +84,65 @@ for cat in ["무선충전기", "우산"]:
                 """, unsafe_allow_html=True)
 
 st.divider()
-with st.expander("🔍 데이터 동기화 정보 확인"):
-    st.write("마지막 업데이트: 실시간 (1분 간격 자동 갱신)")
-    st.dataframe(final_df[['카테고리', '색상', '입고', '현재재고']], use_container_width=True)
+
+# --- [5. UI 화면 구성: 하단 상세 표 섹션] ---
+# 실제 색상 코드 매칭 (HTML 스타일용)
+color_codes = {
+    "블랙": "#000000", "실버": "#C0C0C0", "핑크": "#FFB6C1", "그린": "#2E8B57", 
+    "우드": "#DEB887", "블루": "#4169E1", "화이트": "#FFFFFF"
+}
+
+with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
+    st.write("마지막 업데이트: 1분 간격 자동 갱신")
+    
+    # HTML 표 시작
+    html_table = """
+    <table style='width: 100%; border-collapse: collapse; text-align: center; border: 1px solid #ddd; font-size: 0.9rem;'>
+        <thead>
+            <tr style='background-color: #f2f2f2; color: #333;'>
+                <th style='padding: 10px; border: 1px solid #ddd;'>구분</th>
+                <th style='padding: 10px; border: 1px solid #ddd;'>카테고리</th>
+                <th style='padding: 10px; border: 1px solid #ddd;'>색상</th>
+                <th style='padding: 10px; border: 1px solid #ddd;'>최초 입고</th>
+                <th style='padding: 10px; border: 1px solid #ddd;'>누적 출고</th>
+                <th style='padding: 10px; border: 1px solid #ddd;'>현재 잔량</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    # 데이터 행 추가
+    for idx, row in final_df.iterrows():
+        cat = row['카테고리']
+        color = row['색상']
+        
+        # 이모지 및 색상 코드 가져오기
+        cat_emoji = emoji_dict.get(cat, "📦")
+        color_emoji = color_icons.get(color, "▫️")
+        color_hex = color_codes.get(color, "#FFFFFF") # 기본값 하얀색
+        
+        # 색상 칸 글자색 결정 (블랙, 블루 등 어두운 색은 하얀 글씨로)
+        text_color = "white" if color in ["블랙", "블루", "그린"] else "black"
+        
+        # 잔량 강조 색상
+        current_stock = int(row['현재재고'])
+        stock_style = "color: red; font-weight: bold;" if current_stock < 5 else ""
+        
+        html_table += f"""
+            <tr style='border: 1px solid #ddd;'>
+                <td style='padding: 8px; border: 1px solid #ddd; font-size: 1.2rem;'>{cat_emoji}</td>
+                <td style='padding: 8px; border: 1px solid #ddd;'>{cat}</td>
+                <td style='padding: 8px; border: 1px solid #ddd; background-color: {color_hex}; color: {text_color}; font-weight: bold;'>
+                    {color_emoji} {color}
+                </td>
+                <td style='padding: 8px; border: 1px solid #ddd;'>{int(row['입고'])}개</td>
+                <td style='padding: 8px; border: 1px solid #ddd;'>{int(row['출고'] + row['출고_신규'])}개</td>
+                <td style='padding: 8px; border: 1px solid #ddd; {stock_style}'>{current_stock}개</td>
+            </tr>
+        """
+        
+    # HTML 표 마무리
+    html_table += "</tbody></table>"
+    
+    # 완성된 HTML 표 출력
+    st.markdown(html_table, unsafe_allow_html=True)
