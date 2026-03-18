@@ -94,26 +94,12 @@ color_codes = {
 with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
     st.write("마지막 업데이트: 1분 간격 자동 갱신")
     
-    # 표 상단 제목 및 스타일 정의
+    # 표 디자인 (CSS) 및 헤더 생성
     html_table = """
     <style>
-        .inventory-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .inventory-table th {
-            background-color: #f8f9fa;
-            color: #333;
-            padding: 12px;
-            border: 1px solid #dee2e6;
-            font-weight: bold;
-        }
-        .inventory-table td {
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            text-align: center;
-        }
+        .inventory-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: sans-serif; }
+        .inventory-table th { background-color: #f8f9fa; color: #333; padding: 12px; border: 1px solid #dee2e6; }
+        .inventory-table td { padding: 10px; border: 1px solid #dee2e6; text-align: center; }
     </style>
     <table class='inventory-table'>
         <thead>
@@ -129,16 +115,14 @@ with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
         <tbody>
     """
     
+    # 데이터 행을 하나씩 추가
     for idx, row in final_df.iterrows():
         cat = row['카테고리']
         color = row['색상']
         cat_emoji = emoji_dict.get(cat, "📦")
         color_emoji = color_icons.get(color, "▫️")
         color_hex = color_codes.get(color, "#FFFFFF")
-        
-        # 가독성을 위한 텍스트 색상 결정
         text_color = "white" if color in ["블랙", "블루", "그린"] else "black"
-        
         current_stock = int(row['현재재고'])
         stock_style = "color: #FF4B4B; font-weight: bold;" if current_stock < 5 else ""
         
@@ -156,4 +140,6 @@ with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
         """
         
     html_table += "</tbody></table>"
+
+    # ⭐ [가장 중요] 코드가 글자로 보이지 않게 HTML로 렌더링하는 함수입니다.
     st.markdown(html_table, unsafe_allow_html=True)
