@@ -165,16 +165,26 @@ history_out = safe_extract(out_raw, out_map)
 if not history_base.empty or not history_out.empty:
     total_history = pd.concat([history_base, history_out], ignore_index=True)
     
-    # 수량 숫자 변환 및 정렬
+    # 데이터 정제: 수량 숫자 변환
     total_history['수량'] = pd.to_numeric(total_history['수량'], errors='coerce').fillna(0)
     total_history = total_history[total_history['수량'] > 0]
-    total_history = total_history.sort_values(by='일시', ascending=False)
+    
+    # --- [핵심: 다중 정렬 적용] ---
+    # 1순위: 일시(내림차순, False)
+    # 2순위: 카테고리(오름차순, True)
+    # 3순위: 색상(오름차순, True)
+    total_history = total_history.sort_values(
+        by=['일시', '카테고리', '색상'], 
+        ascending=[False, True, True]
+    )
 
     st.dataframe(
         total_history,
         use_container_width=True,
         column_config={
             "일시": st.column_config.TextColumn("출고 일시", width="medium"),
+            "카테고리": st.column_config.TextColumn("카테고리", width="small"),
+            "색상": st.column_config.TextColumn("색상", width="small"),
             "수량": st.column_config.NumberColumn("수량(개)", width="small"),
             "상세내역(수령처)": st.column_config.TextColumn("상세 내역 / 업체명", width="large"),
             "작성자": st.column_config.TextColumn("출고 담당자", width="small")
