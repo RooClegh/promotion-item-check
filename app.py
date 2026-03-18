@@ -122,58 +122,62 @@ with st.expander("📝 전체 상세 재고 표 (실시간 동기화 정보)"):
 # --- [6. UI 하단: 누적 출고 상세 이력 (사장님 보고용)] ---
 st.subheader("📜 전체 누적 출고 상세 이력")
 
-# 안전하게 열을 추출하는 함수 (이름이 달라도 에러 방지)
 def safe_extract(df, col_map):
     if df.empty:
+        # 데이터가 없을 경우 기본 틀만 생성
         return pd.DataFrame(columns=list(col_map.values()))
     
     extracted = pd.DataFrame()
     for original, target in col_map.items():
-        # 시트에 해당 열이 있으면 가져오고, 없으면 "-"로 채움
+        # 1. 원래 이름으로 찾기
         if original in df.columns:
             extracted[target] = df[original]
+        # 2. (설문지용) '업체명 및 내용' 처럼 특이한 이름 대응
+        elif target == '상세내역(수령처)' and '업체명 및 내용' in df.columns:
+            extracted[target] = df['업체명 및 내용']
+        # 3. (공통) 타임스탬프 영문 대응
+        elif original == '타임스탬프' and 'Timestamp' in df.columns:
+            extracted[target] = df['Timestamp']
+        # 4. 아예 없으면 하이픈 처리
         else:
-            # 타임스탬프 대신 'Timestamp' 등 영문일 경우를 대비해 한 번 더 체크
-            alt_name = "Timestamp" if original == "타임스탬프" else original
-            if alt_name in df.columns:
-                extracted[target] = df[alt_name]
-            else:
-                extracted[target] = "-"
+            extracted[target] = "-"
     return extracted
 
-# 1. 일반 시트 데이터 정리
+# 1. 일반 시트 매핑
 base_map = {
     '날짜': '일시', '카테고리': '카테고리', '색상': '색상', 
     '출고': '수량', '상세내역': '상세내역(수령처)', '담당자': '작성자'
 }
 history_base = safe_extract(base_raw, base_map)
 
-# 2. 설문지 시트 데이터 정리 (KeyError 발생 지점 방어)
+# 2. 설문지 응답 시트 매핑 (주영님이 말씀하신 '업체명 및 내용' 반영)
 out_map = {
-    '타임스탬프': '일시', '카테고리': '카테고리', '색상': '색상', 
-    '출고': '수량', '상세내역': '상세내역(수령처)', '작성자': '작성자'
+    '타임스탬프': '일시', 
+    '카테고리': '카테고리', 
+    '색상': '색상', 
+    '출고': '수량', 
+    '업체명 및 내용': '상세내역(수령처)', # 이 부분이 핵심입니다!
+    '작성자': '작성자'
 }
 history_out = safe_extract(out_raw, out_map)
 
-# 3. 데이터 통합 및 정렬
+# 3. 데이터 통합 및 출력
 if not history_base.empty or not history_out.empty:
     total_history = pd.concat([history_base, history_out], ignore_index=True)
     
-    # 수량이 숫자가 아닌 경우를 대비해 변환
+    # 수량 숫자 변환 및 정렬
     total_history['수량'] = pd.to_numeric(total_history['수량'], errors='coerce').fillna(0)
     total_history = total_history[total_history['수량'] > 0]
-    
-    # 최신순 정렬 (일시가 기록된 경우만)
     total_history = total_history.sort_values(by='일시', ascending=False)
 
     st.dataframe(
         total_history,
         use_container_width=True,
         column_config={
-            "일시": st.column_config.TextColumn("출고 일시"),
-            "수량": st.column_config.NumberColumn("수량 (개)"),
-            "상세내역(수령처)": st.column_config.TextColumn("상세 내역 / 업체명"),
-            "작성자": st.column_config.TextColumn("출고 담당자")
+            "일시": st.column_config.TextColumn("출고 일시", width="medium"),
+            "수량": st.column_config.NumberColumn("수량(개)", width="small"),
+            "상세내역(수령처)": st.column_config.TextColumn("상세 내역 / 업체명", width="large"),
+            "작성자": st.column_config.TextColumn("출고 담당자", width="small")
         },
         hide_index=True
     )
